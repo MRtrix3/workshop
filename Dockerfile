@@ -78,6 +78,7 @@ RUN curl https://files.au-1.osf.io/v1/resources/sn9bk/providers/osfstorage/6721a
 
 # Build final image.
 FROM base AS final
+WORKDIR /data
 
 # Install runtime system dependencies.
 RUN apt-get -qq update \
@@ -97,8 +98,9 @@ RUN apt-get -qq update \
         libqt5svg5 \
         libqt5widgets5 \
         libquadmath0 \
-        libtiff5-dev \
+        nano \
         python3-distutils \
+        vim \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=acpcdetect-installer /opt/art /opt/art
@@ -106,7 +108,10 @@ COPY --from=ants-installer /opt/ants /opt/ants
 COPY --from=freesurfer-installer /opt/freesurfer /opt/freesurfer
 COPY --from=fsl-installer /opt/fsl /opt/fsl
 COPY --from=mrtrix3-builder /opt/mrtrix3 /opt/mrtrix3
-COPY --from=data-downloader /data /data
+COPY --from=data-downloader --chmod=444 /data /overlayfs/readonly
 COPY bashrc /root/.bashrc
+
+RUN mkdir /overlayfs/local /overlayfs/work
+RUN echo "overlay /data overlay defaults,lowerdir=/overlayfs/readonly,upperdir=/overlayfs/local,workdir=/overlayfs/work 0 2" >> /etc/fstab
 
 CMD ["/bin/bash"]
